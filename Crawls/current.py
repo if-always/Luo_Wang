@@ -1,26 +1,23 @@
+# coding=UTF-8
 from Luo_Wang.Utils.logutils import *
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 
 
 def Current(func,args,nums):
 
-
+    datas = []
     executor = ThreadPoolExecutor(max_workers=nums)
 
     future_tasks = [executor.submit(func, arg) for arg in args]
 
     wait(future_tasks, return_when=ALL_COMPLETED)
 
+    for task in future_tasks:
 
-    res = (task.result() for task in future_tasks)
-    
+        datas.extend(task.result())
+    #datas = [task.result() for task in future_tasks]
 
-    for res in future_tasks:
-
-        info(res.done())
-        info(res.result())
-    return res
-
+    return datas
 
 
 

@@ -3,8 +3,8 @@ from Luo_Wang.Utils.param_dict import *
 
 
 
-
 if __name__ == '__main__':
 
-    dict_name = demo
-    Trans(dict_name, 5)
+
+	dict_name = maoyan
+	Trans(dict_name, 6)

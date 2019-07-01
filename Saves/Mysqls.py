@@ -5,7 +5,7 @@ from Luo_Wang.Saves.Mysql_settings import *
 from Luo_Wang.Utils import logutils
 from Luo_Wang.Saves import db_util
 
-def connect(dbname):
+def connect(dbname,user,passwd):
 
 	connected = False
 	while connected is False:
@@ -18,10 +18,11 @@ def connect(dbname):
 			logutils.info(str(dbname) + ' 数据库连接成功。')
 			return db_con, db_cur
 
-		except Exception:
+		except Exception as e:
 			time.sleep(1)
 			connected = False
-			logutils.error('%s数据库连接失败，正在尝试重新连接……' % dbname)
+
+			logutils.error('数据库连接失败{}，正在尝试重新连接……'.format(e))
 
 
 def select_by_clause(dbname, sql_clause):
@@ -37,13 +38,13 @@ def select_by_clause(dbname, sql_clause):
 	return data_list
 
 
-def insert_by_args(db_name, table_name, data_dict_list, arg_list):
+def insert_by_args(db_name, table_name, user,passwd,data_dict_list, arg_list):
 	"""
 			将数据批量插入数据库，传入sql参数的是字段名list
 		:param data_dict_list 以字典list的形式传入
 		:param arg_list 以["arg1", "arg2", "arg3"]的形式传入
 		"""
-	db_con, db_cur = connect(db_name)
+	db_con, db_cur = connect(db_name,user,passwd)
 	insertion_part1 = ','.join(arg_list)
 	insertion_part2 = ','.join(["%s" for i in range(len(arg_list))])
 	insert_clause = '''INSERT INTO %s (%s) VALUES (%s)''' % (table_name, insertion_part1, insertion_part2)
@@ -57,19 +58,20 @@ def insert_by_args(db_name, table_name, data_dict_list, arg_list):
 
 	try:
 		logutils.info('正在插入数据...')
+		logutils.info(insert_clause)
 		db_cur.executemany(insert_clause,insert_param)
 		db_con.commit()
 		logutils.info("插入完成")
-	except Exception:
+	except Exception as e:
+		logutils.error(e)
 		logutils.error('批量插入失败，进行数据插入回滚')
 		db_con.rollback()
 		db_con.close()
-	db_con.close()
+	#db_con.close()
 
 
-def	update_by_args(db_name, table_name,data_dict_list,pk_arg_list,arg_list):
-
-	db_con, db_cur = connect(db_name)
+def	update_by_args(db_name, table_name,user,passwd,data_dict_list,arg_list,pk_arg_list):
+	db_con, db_cur = connect(db_name, user, passwd)
 	primary_column_list = db_util.primary_column_name(db_con, db_cur, db_name, table_name)
 	all_column_list     = db_util.all_column_name(db_con, db_cur, db_name, table_name)
 	for each in primary_column_list:
@@ -93,20 +95,19 @@ def	update_by_args(db_name, table_name,data_dict_list,pk_arg_list,arg_list):
 		update_param.append(tuple(data_dict.get(arg) for arg in all_arg_list))
 	update_param_set = set(update_param)  # set去重
 	update_param = list(update_param_set)
-	print(update_param)
-	count = 0
-	for each in update_param:
-		try:
-			logutils.info('%s/%s 正在更新数据...' % (count + 1, len(update_param)))
-			db_cur.execute(update_clause, each)
-			db_con.commit()
-			count += 1
-			logutils.info("更新完成")
-		except Exception:
-			logutils.error("更新数据时发生错误，内容：%s")
+	#count = 0
+	#for each in update_param:
+	try:
+		logutils.info('正在更新数据...' )
+		db_cur.executemany(update_clause,update_param)
+		db_con.commit()
+		#count += 1
+		logutils.info("更新完成")
+	except Exception:
+		logutils.error("更新数据时发生错误，内容：%s")
 
 	db_con.close()
-	return count
+	#return count
 
 def insert_or_update_by_args(db_name, table_name, data_dict, signature_arg_list, info_arg_list):
     """
@@ -150,17 +151,25 @@ def insert_or_update_by_args(db_name, table_name, data_dict, signature_arg_list,
         logutils.error("插入数据时发生错误，数据内容：%s" % data_dict)
 
 
+def	Mysql(dbname,table,user,passwd,types,data_dict_list,arg_list):
+    #print(types.upper)
+
+    if types.upper() == 'INSERT':
+
+       insert_by_args(dbname, table,user,passwd,data_dict_list, arg_list)
+    elif types.upper() == 'UPDATE':
+       print(arg_list[:1])
+       update_by_args(dbname, table,user,passwd,data_dict_list, arg_list,arg_list[:1])
 if __name__ == '__main__':
+    pass
 
-
-
-	#insert_by_args()
+    #insert_by_args()
 	#select_by_clause("crawl_args",'''SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='crawl_args' and TABLE_NAME='funcname' ''')
 	#db_con,db_cur = connect("crawl_args")
 	#qaaq.select_by_clause('crawl_args',"SELECT * FROM `funcname`")
 
-	datas = {'id': '89', 'name': 'n', 'statement': 'jinlian'}
-	args = ['name','statement']
-	keys = ['id']
-	# insert_by_args('crawl_args', 'funcname', datas, args)
-	insert_or_update_by_args('crawl_args', 'funcname',datas,keys,args)
+	# datas = {'id': '89', 'name': 'n', 'statement': 'jinlian'}
+	# args = ['name','statement']
+	# keys = ['id']
+	# # insert_by_args('crawl_args', 'funcname', datas, args)
+	# insert_or_update_by_args('crawl_args', 'funcname',datas,keys,args)
