@@ -13,7 +13,8 @@ def Current(func,args,nums):
     wait(future_tasks, return_when=ALL_COMPLETED)
 
     for task in future_tasks:
-
+        info(task.done())
+        info(task.result())
         datas.extend(task.result())
     #datas = [task.result() for task in future_tasks]
 

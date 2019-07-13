@@ -19,7 +19,7 @@ demo = {
 	'name':'Demo',
 	'urls':get_urls.demo,
 	'func_name':function.demo,
-	'save_type':{'Mysql':['Test','demo','root','','update',['id','name','age','tf']]}
+	'save_type':{'Mysql':['Test','demo','root','','updateqwe',['id','name','age','tf'],['id']]}
 
 }
 

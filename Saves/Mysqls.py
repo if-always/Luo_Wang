@@ -25,9 +25,9 @@ def connect(dbname,user,passwd):
 			logutils.error('数据库连接失败{}，正在尝试重新连接……'.format(e))
 
 
-def select_by_clause(dbname, sql_clause):
+def select_by_clause(dbname, user,passwd,sql_clause):
 
-	db_con, db_cur = connect(dbname)
+	db_con, db_cur = connect(dbname,user,passwd)
 	data_list = []
 	try:
 		db_cur.execute(sql_clause)
@@ -57,6 +57,7 @@ def insert_by_args(db_name, table_name, user,passwd,data_dict_list, arg_list):
 	insert_param = list(insert_param_set)
 
 	try:
+		logutils.info(insert_clause)
 		logutils.info('正在插入数据...')
 		logutils.info(insert_clause)
 		db_cur.executemany(insert_clause,insert_param)
@@ -70,24 +71,24 @@ def insert_by_args(db_name, table_name, user,passwd,data_dict_list, arg_list):
 	#db_con.close()
 
 
-def	update_by_args(db_name, table_name,user,passwd,data_dict_list,arg_list,pk_arg_list):
+def	update_by_args(db_name, table_name,user,passwd,data_dict_list,arg_list,pk_list):
 	db_con, db_cur = connect(db_name, user, passwd)
 	primary_column_list = db_util.primary_column_name(db_con, db_cur, db_name, table_name)
 	all_column_list     = db_util.all_column_name(db_con, db_cur, db_name, table_name)
 	for each in primary_column_list:
 		all_column_list.remove(each)
 
-	if pk_arg_list is None:
-		pk_arg_list = primary_column_list
+	if pk_list is None:
+		pk_list = primary_column_list
 	if arg_list is None:
 		arg_list = all_column_list
 
 	all_arg_list = list()
 	all_arg_list.extend(arg_list)
-	all_arg_list.extend(pk_arg_list)
+	all_arg_list.extend(pk_list)
 
 	update_part1 = '=%s,'.join(arg_list) + '=%s'
-	update_part2 = '=%s and '.join(pk_arg_list) + '=%s'
+	update_part2 = '=%s and '.join(pk_list) + '=%s'
 	update_clause = 'UPDATE %s.%s SET %s WHERE %s' % (db_name, table_name, update_part1, update_part2)
 	update_param = []
 
@@ -95,8 +96,7 @@ def	update_by_args(db_name, table_name,user,passwd,data_dict_list,arg_list,pk_ar
 		update_param.append(tuple(data_dict.get(arg) for arg in all_arg_list))
 	update_param_set = set(update_param)  # set去重
 	update_param = list(update_param_set)
-	#count = 0
-	#for each in update_param:
+
 	try:
 		logutils.info('正在更新数据...' )
 		db_cur.executemany(update_clause,update_param)
@@ -109,67 +109,68 @@ def	update_by_args(db_name, table_name,user,passwd,data_dict_list,arg_list,pk_ar
 	db_con.close()
 	#return count
 
-def insert_or_update_by_args(db_name, table_name, data_dict, signature_arg_list, info_arg_list):
-    """
-        将数据插入数据库，如果插入失败则改为更新数据，传入的sql参数是字段名list，分为信息字段名list和主键字段名list
-    :param data_dict 以字典的形式传入（不是列表）
-    :param signature_arg_list 以["arg1", "arg2", "arg3"]的形式传入主键字段
-    :param info_arg_list 以["arg1", "arg2", "arg3"]的形式传入信息字段，不包括主键字段
-    """
-    db_con, db_cur = connect(db_name)
-
-    all_arg_list = list()
-    all_arg_list.extend(info_arg_list)
-    all_arg_list.extend(signature_arg_list)
-    insertion_part1 = ','.join(all_arg_list)
-    insertion_part2 = ','.join(["%s" for i in range(len(all_arg_list))])
-    insert_clause = '''INSERT INTO %s (%s) VALUES (%s)''' % (table_name, insertion_part1, insertion_part2)
+def insert_or_update_by_args(db_name, table_name, user,passwd,data_dict_list, arg_list,pk_list):
+	"""
+		将数据插入数据库，如果插入失败则改为更新数据，传入的sql参数是字段名list，分为信息字段名list和主键字段名list
+		:param data_dict 以字典的形式传入（不是列表）
+		:param signature_arg_list 以["arg1", "arg2", "arg3"]的形式传入主键字段
+		:param info_arg_list 以["arg1", "arg2", "arg3"]的形式传入信息字段，不包括主键字段
+	"""
+	db_con, db_cur = connect(db_name,user,passwd)
 
 
-    insert_param = tuple((data_dict.get(arg) for arg in all_arg_list))
-
-    update_part1 = '=%s,'.join(all_arg_list)+ '=%s'
-
-    update_part1 = '=%s,'.join(info_arg_list) + '=%s'
-    update_part2 = '=%s and '.join(signature_arg_list) + '=%s'
-    update_clause = 'UPDATE %s SET %s WHERE %s' % (table_name, update_part1, update_part2)
-    update_param = tuple(data_dict.get(arg) for arg in all_arg_list)
-    try:
-        logutils.debug(('插入数据：%s ' % data_dict))
-        db_cur.executemany(insert_clause, [insert_param])
-        db_con.commit()
-    except pymysql.IntegrityError:
-        try:
-            logutils.debug(('更新数据：%s ' % data_dict))
-            logutils.info("更新完成")
-            db_cur.execute(update_clause, update_param)
-
-            db_con.commit()
-        except Exception:
-            logutils.error("更新数据时发生错误，数据内容：%s" % data_dict)
-    except Exception as e:
-        logutils.error("插入数据时发生错误，数据内容：%s" % data_dict)
+	insertion_part1 = ','.join(arg_list)
+	insertion_part2 = ','.join(["%s" for i in range(len(data_dict_list)+1)])
+	insert_clause = '''INSERT INTO %s (%s) VALUES (%s)''' % (table_name, insertion_part1, insertion_part2)
+	all_arg_list = list()
+	all_arg_list.extend(arg_list)
+	all_arg_list.extend(pk_list)
+	for data_dict in data_dict_list:
+		insert_param = tuple(data_dict.get(arg) for arg in arg_list )
 
 
-def	Mysql(dbname,table,user,passwd,types,data_dict_list,arg_list):
-    #print(types.upper)
 
-    if types.upper() == 'INSERT':
+		update_part1 = '=%s,'.join(arg_list) + '=%s'
+		update_part2 = '=%s and '.join(pk_list) + '=%s'
+		update_clause = 'UPDATE %s SET %s WHERE %s' % (table_name, update_part1, update_part2)
+		update_param = tuple(data_dict.get(arg) for arg in all_arg_list)
 
-       insert_by_args(dbname, table,user,passwd,data_dict_list, arg_list)
-    elif types.upper() == 'UPDATE':
-       print(arg_list[:1])
-       update_by_args(dbname, table,user,passwd,data_dict_list, arg_list,arg_list[:1])
+
+		try:
+			logutils.debug(('插入数据：%s %s %s %s' % insert_param))
+			db_cur.execute(insert_clause,insert_param)
+			db_con.commit()
+			logutils.info("插入完成")
+		except pymysql.IntegrityError:
+			try:
+
+				logutils.debug(('更新数据：%s %s %s %s %s' % update_param))
+				db_cur.execute(update_clause,update_param)
+				db_con.commit()
+				logutils.info("更新完成")
+			except Exception:
+				logutils.error("更新数据时发生错误，数据内容：%s" % data_dict)
+		except Exception as e:
+			print(e)
+			logutils.error("插入数据时发生错误，数据内容：%s" % data_dict)
+
+
+def	Mysql(dbname,table,user,passwd,types,data_dict_list,arg_list,key_list):
+
+
+	if types.upper() == 'INSERT':
+
+		insert_by_args(dbname, table,user,passwd,data_dict_list, arg_list)
+
+	elif types.upper() == 'UPDATE':
+
+		update_by_args(dbname, table,user,passwd,data_dict_list, arg_list,key_list)
+
+	else:
+
+		insert_or_update_by_args(dbname,table,user,passwd,data_dict_list, arg_list, arg_list[:1])
+
+
 if __name__ == '__main__':
-    pass
 
-    #insert_by_args()
-	#select_by_clause("crawl_args",'''SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='crawl_args' and TABLE_NAME='funcname' ''')
-	#db_con,db_cur = connect("crawl_args")
-	#qaaq.select_by_clause('crawl_args',"SELECT * FROM `funcname`")
-
-	# datas = {'id': '89', 'name': 'n', 'statement': 'jinlian'}
-	# args = ['name','statement']
-	# keys = ['id']
-	# # insert_by_args('crawl_args', 'funcname', datas, args)
-	# insert_or_update_by_args('crawl_args', 'funcname',datas,keys,args)
+	pass

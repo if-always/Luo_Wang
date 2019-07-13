@@ -32,7 +32,7 @@ def Trans(dict_name,th_num):
         info("{}处理函数获取成功".format(dict_name['name']))
         info("正在分配线程 , 线程数：%d" %th_num)
         datas = current.Current(func_name,starts_url,th_num)
-        info(datas)
+        #info(datas)
     except Exception as e:
         error(e)
         os._exit(1)
@@ -44,6 +44,7 @@ def Trans(dict_name,th_num):
     Mysql_pawd = dict_name['save_type'].values()[0][3]
     Mysql_type = dict_name['save_type'].values()[0][4]
     Mysql_args = dict_name['save_type'].values()[0][5]
+    Mysql_keys = dict_name['save_type'].values()[0][6]
     if Mysql_name == 'MYSQL':
 
         info("数据库信息：{0} 库名：{1} 表名：{2} 用户：{3} 操作，{4}".format(Mysql_name,Mysql_dbme.upper(),Mysql_tabe.upper(),Mysql_user.upper(),Mysql_type.upper()))
@@ -53,7 +54,7 @@ def Trans(dict_name,th_num):
         error("数据库信息加载失败 ，请检查param_dict存储参数")
         os._exit(1)
 
-    Mysql(Mysql_dbme,Mysql_tabe,Mysql_user,Mysql_pawd,Mysql_type,datas,Mysql_args)
+    Mysql(Mysql_dbme,Mysql_tabe,Mysql_user,Mysql_pawd,Mysql_type,datas,Mysql_args,Mysql_keys)
     endtime = time()
     cost = endtime-start_time
     info(cost)

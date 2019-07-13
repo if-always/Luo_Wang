@@ -11,9 +11,9 @@ from Luo_Wang.Crawls.request import *
 
 def demo(url):
 
-	abc = [{'id':1,'name':'qwer','age':118,'tf':'qwer'},
-           {'id':2,'name':'qaaq','age':118,'tf':'qaaq'},
-		   {'id':3,'name':'zxcv','age':118,'tf':'qaaq'}
+	abc = [{'id':999,'name':'qwer','age':1118,'tf':'qwer'},
+           {'id':99,'name':'qaaq','age':118,'tf':'qaaq'},
+		   {'id':9,'name':'zxcv','age':777,'tf':'qaaq'}
 
 
 		   ]
